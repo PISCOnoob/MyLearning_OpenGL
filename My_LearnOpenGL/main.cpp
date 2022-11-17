@@ -7,16 +7,30 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "shader.h"
+#include "FpsCamera.h"
+//#include "camera.h"
 
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double posX, double posY);
+void scroll_callback(GLFWwindow* window, double posX, double posY);
 void processInput(GLFWwindow* window);
 
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
 
+// settings
+const unsigned int SCR_WIDTH = 1024;
+const unsigned int SCR_HEIGHT = 768;
+
+// camera
+FpsCamera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+float firstMouse = true;
+
+// timing 
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 int main()
 {
@@ -43,6 +57,8 @@ int main()
 
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
 	// glad: load all OpenGL function pointers
 	// --------------------
@@ -106,6 +122,19 @@ int main()
 		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	};
+
+	glm::vec3 cubePositions[] = {
+	  glm::vec3(0.0f,  0.0f,  0.0f),
+	  glm::vec3(2.0f,  5.0f, -15.0f),
+	  glm::vec3(-1.5f, -2.2f, -2.5f),
+	  glm::vec3(-3.8f, -2.0f, -12.3f),
+	  glm::vec3(2.4f, -0.4f, -3.5f),
+	  glm::vec3(-1.7f,  3.0f, -7.5f),
+	  glm::vec3(1.3f, -2.0f, -2.5f),
+	  glm::vec3(1.5f,  2.0f, -2.5f),
+	  glm::vec3(1.5f,  0.2f, -1.5f),
+	  glm::vec3(-1.3f,  1.0f, -1.5f)
 	};
 
 	unsigned int VBO, VAO;
@@ -185,38 +214,26 @@ int main()
 	// tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
 	// -------------------------------------------------------------------------------------------
 	myShader.use(); // don't forget to activate/use the shader before setting uniforms!
-	// either set it manually like so:
-	//glUniform1i(glGetUniformLocation(myShader.ID, "texture0"), 0);
-	// or set it via the texture class
+	
 	myShader.setInt("texture1", 0);
 	myShader.setInt("texture2", 1);
-
-	glm::mat4 projection = glm::mat4(1.0f);
-	projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-	unsigned int projectionLoc = glGetUniformLocation(myShader.ID, "projection");
-	myShader.setMat4("projection", projection);
-
-	glm::vec3 cubePositions[] = {
-	  glm::vec3(0.0f,  0.0f,  0.0f),
-	  glm::vec3(2.0f,  5.0f, -15.0f),
-	  glm::vec3(-1.5f, -2.2f, -2.5f),
-	  glm::vec3(-3.8f, -2.0f, -12.3f),
-	  glm::vec3(2.4f, -0.4f, -3.5f),
-	  glm::vec3(-1.7f,  3.0f, -7.5f),
-	  glm::vec3(1.3f, -2.0f, -2.5f),
-	  glm::vec3(1.5f,  2.0f, -2.5f),
-	  glm::vec3(1.5f,  0.2f, -1.5f),
-	  glm::vec3(-1.3f,  1.0f, -1.5f)
-	};
 
 	// render loop
 	// --------------------
 	while (!glfwWindowShouldClose(window))
 	{
+		// per-frame time logic
+		// --------------------
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
 		// input
 		// --------------------
 		processInput(window);
 
+		// render
+		// --------------------
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -227,20 +244,16 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
 		myShader.use();
-		//// create transformations
-		//glm::mat4 model = glm::mat4(1.0f);
-		glm::mat4 view = glm::mat4(1.0f);
-		//model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-		//
 
-		//// retrieve the matrix uniform locations
-		//unsigned int modelLoc = glGetUniformLocation(myShader.ID, "model");
-		unsigned int viewLoc = glGetUniformLocation(myShader.ID, "view");
+		// pass projection matrix to shader (note that in this case it could change every frame
+		glm::mat4 projection = glm::mat4(1.0f);
+		projection = glm::perspective(glm::radians(camera.m_zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		myShader.setMat4("projection", projection);
 
-		//// pass them to the shaders(3 different ways)
-		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		// camera/view transformation
+		glm::mat4 view = camera.GetViewMatrix();
 		myShader.setMat4("view", view);
+
 
 		glBindVertexArray(VAO);
 		for (unsigned int i = 0; i < 10; i++)
@@ -282,16 +295,6 @@ int main()
 	return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released thie frame and react accordingly
-// --------------------
-void processInput(GLFWwindow* window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-	{
-		glfwSetWindowShouldClose(window, true);
-	}
-}
-
 // glfw: whenever the window size changed (by OS or user) this callback function excetues
 // --------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -300,4 +303,53 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	// height will be sinificantly larger than specified on Retina displays
 	glViewport(0, 0, width, height);
 
+}
+
+// glfw: whenever the mouse moves,this callback is called
+// --------------------
+void mouse_callback(GLFWwindow* window, double in_posX, double in_posY)
+{
+	float posX = static_cast<float>(in_posX);
+	float posY = static_cast<float>(in_posY);
+
+	if (firstMouse)
+	{
+		lastX = posX;
+		lastY = posY;
+		firstMouse = false;
+	}
+
+	float offsetX = posX - lastX;
+	float offsetY = -(posY - lastY);	// reversed since y-coordinates go from bottem to top
+
+	lastX = posX;
+	lastY = posY;
+
+	camera.ProcessMouseMovement(offsetX, offsetY);
+}
+
+// glfw: whenever the mouse scroll wheel scrolls, this callback is called
+// ----------------------------------------------------------------------
+void scroll_callback(GLFWwindow* window, double offsetX, double offsetY)
+{
+	camera.ProcessMouseScroll(static_cast<float>(offsetY));
+}
+
+// process all input: query GLFW whether relevant keys are pressed/released thie frame and react accordingly
+// --------------------
+void processInput(GLFWwindow* window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(window, true);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera.ProcessKeyboard(FORWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera.ProcessKeyboard(BACKWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera.ProcessKeyboard(LEFT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera.ProcessKeyboard(RIGHT, deltaTime);
 }

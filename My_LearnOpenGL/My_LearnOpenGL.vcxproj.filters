@@ -38,5 +38,8 @@
     <ClInclude Include="stb_image.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
+    <ClInclude Include="FpsCamera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
