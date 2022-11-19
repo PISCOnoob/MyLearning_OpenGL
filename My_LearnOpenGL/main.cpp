@@ -71,11 +71,11 @@ int main()
 
 	// build and compile our shader program
 	// --------------------
-	const char* vertexShaderPath1 = "..\\Shader\\VertexShader\\2.5.1.ObjectShader.vs";
-	const char* fragmentShaderPath1 = "..\\Shader\\FragmentShader\\2.5.1.ObjectShader.fs";
+	const char* vertexShaderPath1 = "..\\Shader\\VertexShader\\2.6.0.multiLights.vs";
+	const char* fragmentShaderPath1 = "..\\Shader\\FragmentShader\\2.6.0.multiLights.fs";
 
-	const char* vertexShaderPath2 = "..\\Shader\\VertexShader\\2.5.1.DirLightSource.vs";
-	const char* fragmentShaderPath2 = "..\\Shader\\FragmentShader\\2.5.1.DirLightSource.fs";
+	const char* vertexShaderPath2 = "..\\Shader\\VertexShader\\2.6.0.lightSource.vs";
+	const char* fragmentShaderPath2 = "..\\Shader\\FragmentShader\\2.6.0.lightSource.fs";
 
 	Shader objectShader(vertexShaderPath1, fragmentShaderPath1);
 	Shader lightSourceShader(vertexShaderPath2, fragmentShaderPath2);
@@ -132,16 +132,24 @@ int main()
 	};
 
 	glm::vec3 cubePositions[] = {
-	  glm::vec3(0.0f,  0.0f,  0.0f),
-	  glm::vec3(2.0f,  5.0f, -15.0f),
-	  glm::vec3(-1.5f, -2.2f, -2.5f),
-	  glm::vec3(-3.8f, -2.0f, -12.3f),
-	  glm::vec3(2.4f, -0.4f, -3.5f),
-	  glm::vec3(-1.7f,  3.0f, -7.5f),
-	  glm::vec3(1.3f, -2.0f, -2.5f),
-	  glm::vec3(1.5f,  2.0f, -2.5f),
-	  glm::vec3(1.5f,  0.2f, -1.5f),
-	  glm::vec3(-1.3f,  1.0f, -1.5f)
+		  glm::vec3(0.0f,  0.0f,  0.0f),
+		  glm::vec3(2.0f,  5.0f, -15.0f),
+		  glm::vec3(-1.5f, -2.2f, -2.5f),
+		  glm::vec3(-3.8f, -2.0f, -12.3f),
+		  glm::vec3(2.4f, -0.4f, -3.5f),
+		  glm::vec3(-1.7f,  3.0f, -7.5f),
+		  glm::vec3(1.3f, -2.0f, -2.5f),
+		  glm::vec3(1.5f,  2.0f, -2.5f),
+		  glm::vec3(1.5f,  0.2f, -1.5f),
+		  glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
+
+	// positions of the point lights
+	glm::vec3 pointLightPositions[] = {
+		glm::vec3(0.7f,  0.2f,  2.0f),
+		glm::vec3(2.3f, -3.3f, -4.0f),
+		glm::vec3(-4.0f,  2.0f, -12.0f),
+		glm::vec3(0.0f,  0.0f, -3.0f)
 	};
 
 	// first configure the Object's VAO and VBO
@@ -172,15 +180,15 @@ int main()
 	glGenBuffers(1, &VBO);
 
 	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s)
-	//glBindVertexArray(lightSourceVAO);
+	glBindVertexArray(lightSourceVAO);
 
-	//glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 
-	//// position attribute
-	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	//glEnableVertexAttribArray(0);
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
 	
 
@@ -226,13 +234,65 @@ int main()
 		// pass variables into shader
 		// ---------------------
 		objectShader.setFloat("material.shininess", 32.0f);
-
-		objectShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
-		objectShader.setVec3("light.ambientCol", 0.2f, 0.2f, 0.2f);
-		objectShader.setVec3("light.diffuseCol", 0.5f, 0.5f, 0.5f);
-		objectShader.setVec3("light.specularCol", 1.0f, 1.0f, 1.0f);
-
 		objectShader.setVec3("viewPos", camera.m_position);
+
+		/*
+		   Here we set all the uniforms for the 5/6 types of lights we have. We have to set them manually and index
+		   the proper PointLight struct in the array to set each uniform variable. This can be done more code-friendly
+		   by defining light types as classes and set their values in there, or by using a more efficient uniform approach
+		   by using 'Uniform buffer objects', but that is something we'll discuss in the 'Advanced GLSL' tutorial.
+		*/
+
+		// directional light
+		objectShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+		objectShader.setVec3("dirLight.ambientCol", 0.05f, 0.05f, 0.05f);
+		objectShader.setVec3("dirLight.diffuseCol", 0.4f, 0.4f, 0.4f);
+		objectShader.setVec3("dirLight.specularCol", 0.5f, 0.5f, 0.5f);
+
+		// point light 1
+		objectShader.setVec3("pointLights[0].position", pointLightPositions[0]);
+		objectShader.setVec3("pointLights[0].ambientCol", 0.05f, 0.05f, 0.05f);
+		objectShader.setVec3("pointLights[0].diffuseCol", 0.8f, 0.8f, 0.8f);
+		objectShader.setVec3("pointLights[0].specularCol", 1.0f, 1.0f, 1.0f);
+		objectShader.setFloat("pointLights[0].constant", 1.0f);
+		objectShader.setFloat("pointLights[0].linear", 0.09f);
+		objectShader.setFloat("pointLights[0].quadratic", 0.032f);
+		// point light 2
+		objectShader.setVec3("pointLights[1].position", pointLightPositions[1]);
+		objectShader.setVec3("pointLights[1].ambientCol", 0.05f, 0.05f, 0.05f);
+		objectShader.setVec3("pointLights[1].diffuseCol", 0.8f, 0.8f, 0.8f);
+		objectShader.setVec3("pointLights[1].specularCol", 1.0f, 1.0f, 1.0f);
+		objectShader.setFloat("pointLights[1].constant", 1.0f);
+		objectShader.setFloat("pointLights[1].linear", 0.09f);
+		objectShader.setFloat("pointLights[1].quadratic", 0.032f);
+		// point light 3
+		objectShader.setVec3("pointLights[2].position", pointLightPositions[2]);
+		objectShader.setVec3("pointLights[2].ambientCol", 0.05f, 0.05f, 0.05f);
+		objectShader.setVec3("pointLights[2].diffuseCol", 0.8f, 0.8f, 0.8f);
+		objectShader.setVec3("pointLights[2].specularCol", 1.0f, 1.0f, 1.0f);
+		objectShader.setFloat("pointLights[2].constant", 1.0f);
+		objectShader.setFloat("pointLights[2].linear", 0.09f);
+		objectShader.setFloat("pointLights[2].quadratic", 0.032f);
+		// point light 4
+		objectShader.setVec3("pointLights[3].position", pointLightPositions[3]);
+		objectShader.setVec3("pointLights[3].ambientCol", 0.05f, 0.05f, 0.05f);
+		objectShader.setVec3("pointLights[3].diffuseCol", 0.8f, 0.8f, 0.8f);
+		objectShader.setVec3("pointLights[3].specularCol", 1.0f, 1.0f, 1.0f);
+		objectShader.setFloat("pointLights[3].constant", 1.0f);
+		objectShader.setFloat("pointLights[3].linear", 0.09f);
+		objectShader.setFloat("pointLights[3].quadratic", 0.032f);
+
+		// spot light
+		objectShader.setVec3("spotLight.position", camera.m_position);
+		objectShader.setVec3("spotLight.direction", camera.m_front);
+		objectShader.setVec3("spotLight.ambientCol", 0.0f, 0.0f, 0.0f);
+		objectShader.setVec3("spotLight.diffuseCol", 1.0f, 1.0f, 1.0f);
+		objectShader.setVec3("spotLight.specularCol", 1.0f, 1.0f, 1.0f);
+		objectShader.setFloat("spotLight.constant", 1.0f);
+		objectShader.setFloat("spotLight.linear", 0.09f);
+		objectShader.setFloat("spotLight.quadratic", 0.032f);
+		objectShader.setFloat("spotLight.innerAngle", glm::cos(glm::radians(12.5f)));
+		objectShader.setFloat("spotLight.outerAngle", glm::cos(glm::radians(15.0f)));
 
 		// pass projection matrix to shader (note that in this case it could change every frame
 		glm::mat4 projection = glm::mat4(1.0f);
@@ -259,14 +319,28 @@ int main()
 		{
 			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
-			float angle = 20.0f * (i % 3) * (float)glfwGetTime();
+			float angle = 20.0f * (float)glfwGetTime();
 			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0, 0.3f, 0.5f));
 			objectShader.setMat4("model", model);
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
-		// a lamp object is weird when we only have a directional light, don't render the light object
+		// also draw the lamp object(s)
+		lightSourceShader.use();
+		lightSourceShader.setMat4("projection", projection);
+		lightSourceShader.setMat4("view", view);
+
+		glBindVertexArray(lightSourceVAO);
+		for (unsigned int i = 0; i < 4; ++i)
+		{
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, pointLightPositions[i]);
+			model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
+			lightSourceShader.setMat4("model", model);
+
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
 	
 
 		// glfw: swap buffers and poll IO event (key pressed/released, mouse move etc.)
@@ -278,7 +352,7 @@ int main()
 	// optional: de-allocate all resources once they've outlived their purpose:
 	// --------------------
 	glDeleteVertexArrays(1, &objectVAO);
-	//glDeleteVertexArrays(1, &lightSourceVAO);
+	glDeleteVertexArrays(1, &lightSourceVAO);
 	glDeleteBuffers(1, &VBO);
 
 	// glfw: teminate, clearing all previously allocated GLFW resources
