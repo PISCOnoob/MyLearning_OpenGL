@@ -1,1 +1,2 @@
 C:\C++ project\LearnOpenGL\My_LearnOpenGL\x64\Debug\My_LearnOpenGL.exe
+D:\C++ project\MyLearning_OpenGL\My_LearnOpenGL\x64\Debug\My_LearnOpenGL.exe

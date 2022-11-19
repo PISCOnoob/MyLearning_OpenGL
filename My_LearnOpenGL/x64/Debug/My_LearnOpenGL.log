@@ -1,3 +1,6 @@
-﻿  main.cpp
-C:\C++ project\LearnOpenGL\My_LearnOpenGL\main.cpp(209,22): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-  My_LearnOpenGL.vcxproj -> C:\C++ project\LearnOpenGL\My_LearnOpenGL\x64\Debug\My_LearnOpenGL.exe
+﻿  glad.c
+  main.cpp
+D:\C++ project\MyLearning_OpenGL\My_LearnOpenGL\main.cpp(209,22): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  stb_image.cpp
+  Generating Code...
+  My_LearnOpenGL.vcxproj -> D:\C++ project\MyLearning_OpenGL\My_LearnOpenGL\x64\Debug\My_LearnOpenGL.exe
